@@ -7,8 +7,8 @@
 PROJ_NAME=myproject
 
 # Path to your arm gcc
-ARM_CC_PATH=/home/garry/arm/gcc-arm-none-eabi-4_9-2015q3
-STLINK=/home/garry/arm/stlink
+ARM_CC_PATH=/Users/artemgolovinskij/electronic/gcc-arm-none-eabi-5_3-2016q1
+STLINK=/Users/artemgolovinskij/electronic/stlink
 ##########################################################
 ## END DEFINITIONS 
 ##########################################################
@@ -51,6 +51,8 @@ COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_rcc.c
 COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_gpio.c
 
 COMMON_FILES += src/*.c
+COMMON_FILES += src/freertos/*.c
+COMMON_FILES += src/freertos/portable/GCC/ARM_CM3/*.c
 
 
 .PHONY: all burn clean
@@ -58,7 +60,7 @@ COMMON_FILES += src/*.c
 all: bld/$(PROJ_NAME).elf burn
 
 bld/$(PROJ_NAME).elf: $(COMMON_FILES)
-	$(CC) $(CFLAGS_LINK) -Isrc/ -o $@ $^
+	$(CC) $(CFLAGS_LINK) -Isrc/ -Isrc/freertos/include/ -Isrc/freertos/ -Isrc/freertos/portable/GCC/ARM_CM3/ -o $@ $^
 	$(CP) -O ihex bld/$(PROJ_NAME).elf bld/$(PROJ_NAME).hex	
 	$(CP) -O binary bld/$(PROJ_NAME).elf bld/$(PROJ_NAME).bin	
 	$(OD) -S bld/$(PROJ_NAME).elf > bld/$(PROJ_NAME).list

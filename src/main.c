@@ -2,6 +2,14 @@
 #include "stm32f10x_gpio.h"
 #include "stm32f10x_rcc.h"
 
+#include "FreeRTOS.h"
+
+#include "task.h"
+
+void vApplicationTickHook( void ) {};
+
+char mystring[100];
+
 void init_led(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
@@ -19,14 +27,22 @@ void busyLoop(uint32_t delay )
   while(delay) delay--;
 }
 
+void vTaskLED1(void *pvParameters) {
+
+  for (;;) {
+    GPIOC->BRR = 0x00002000;
+    vTaskDelay(100);
+    GPIOC->BSRR = 0x00002000;
+    vTaskDelay(200);
+  }
+
+}
+
+
 int main(void)
 {
     init_led();
-
-    while(1) {
-       GPIOC->BRR = 0x00002000;
-       busyLoop(2500000);
-       GPIOC->BSRR = 0x00002000;
-       busyLoop(2500000);
-    }
+    xTaskCreate( vTaskLED1, ( signed char * ) "LED1", configMINIMAL_STACK_SIZE, NULL, 2, ( xTaskHandle * ) NULL);
+    vTaskStartScheduler();
+    
 }
