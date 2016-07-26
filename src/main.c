@@ -1,48 +1,34 @@
-#include "stm32f10x.h"
-#include "stm32f10x_gpio.h"
-#include "stm32f10x_rcc.h"
-
-#include "FreeRTOS.h"
-
-#include "task.h"
-
-void vApplicationTickHook( void ) {};
+#include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/gpio.h>
+#include "ff.h"
 
 char mystring[100];
 
-void init_led(void)
-{
-    GPIO_InitTypeDef GPIO_InitStructure;
+int fresult = -1;
 
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
-
-    GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_13;
-    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOC, &GPIO_InitStructure);
+void init_led(void) {
+  rcc_periph_clock_enable(RCC_GPIOC);
+  gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_50_MHZ,
+                GPIO_CNF_OUTPUT_PUSHPULL, GPIO13);
 }
 
-void busyLoop(uint32_t delay )
-{
-  while(delay) delay--;
+void init_fatfs(void) {
+  FRESULT fr;
+  FATFS fs;
+  fresult = f_mount(&fs, "", 1);
+  
 }
-
-void vTaskLED1(void *pvParameters) {
-
-  for (;;) {
-    GPIOC->BRR = 0x00002000;
-    vTaskDelay(100);
-    GPIOC->BSRR = 0x00002000;
-    vTaskDelay(200);
-  }
-
-}
-
 
 int main(void)
 {
     init_led();
-    xTaskCreate( vTaskLED1, ( signed char * ) "LED1", configMINIMAL_STACK_SIZE, NULL, 2, ( xTaskHandle * ) NULL);
-    vTaskStartScheduler();
+    int i;
+    init_fatfs();
+    while(1) {
+      
+      gpio_toggle(GPIOC, GPIO13);
+      for (i = 0; i < 200000; i++)	/* Wait a bit. */
+        __asm__("nop");
+    }
     
 }

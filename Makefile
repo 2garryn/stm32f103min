@@ -13,9 +13,6 @@ STLINK=/Users/artemgolovinskij/electronic/stlink
 ## END DEFINITIONS 
 ##########################################################
 
-
-
-
 # Declare command line tools - assume these are in the path
 BIN_PATH  = $(ARM_CC_PATH)/bin
 CC	  = $(BIN_PATH)/arm-none-eabi-gcc
@@ -23,15 +20,6 @@ LD	  = $(BIN_PATH)/arm-none-eabi-ld
 AS	  = $(BIN_PATH)/arm-none-eabi-as
 CP	  = $(BIN_PATH)/arm-none-eabi-objcopy
 OD	  = $(BIN_PATH)/arm-none-eabi-objdump
-
-# Declare command line flags
-CORE_CFLAGS = -I./ -I$(CORE_SRC) -I$(DEVICE_SRC) -I$(STD_PERIPH)/inc  -fno-common -O0 -g -mcpu=cortex-m3 -mthumb 
-CFLAGS  = $(CORE_CFLAGS) -c 
-CFLAGS_LINK = -Wl,-Tmain.ld -nostartfiles $(CORE_CFLAGS)
-ASFLAGS = -mcpu=cortex-m3 -mthumb -g
-LDFLAGS = -Tmain.ld -nostartfiles
-CPFLAGS = -Obinary
-ODFLAGS	= -S
 
 # Declare library source paths
 SRC = $(realpath .)
@@ -49,23 +37,48 @@ COMMON_FILES += $(DEVICE_SRC)/startup/gcc_ride7/startup_stm32f10x_md.s
 ## Add dependencies library files here
 COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_rcc.c
 COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_gpio.c
+COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_spi.c
+COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_bkp.c
+COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_rtc.c
+COMMON_FILES += $(STD_PERIPH_SRC)/stm32f10x_pwr.c
 
-COMMON_FILES += src/*.c
-COMMON_FILES += src/freertos/*.c
-COMMON_FILES += src/freertos/portable/GCC/ARM_CM3/*.c
+COMMON_FILES += $(wildcard src/*.c)
+COMMON_FILES += $(wildcard src/fatfs/*.c)
+COMMON_FILES += $(wildcard src/fatfs/option/*.c)
 
+
+INCLUDE_FILES = -Ilibopencm3/include -Isrc -Isrc/fatfs -I$(DEVICE_SRC)  -I$(CORE_SRC)  -I$(CORE_SRC) -I$(STD_PERIPH)/inc
+
+CDEFS        = -DSTM32F1
+
+CFLAGS		+= -Os -g -Wall -Wextra -I. $(INCLUDE_FILES) -fno-common -mthumb -MD
+CFLAGS		+= -ffunction-sections -fdata-sections
+CFLAGS		+= -mcpu=cortex-m3 -DSTM32F1 -msoft-float
+CFLAGS		+= $(CDEFS)
+
+LDSCRIPT     	= stm32-h103.ld
+
+LDFLAGS		+= -I . -lc -T$(LDSCRIPT) -Llibopencm3/lib -nostartfiles -Wl,--gc-sections -mthumb
+LDFLAGS		+= -march=armv7 -mfix-cortex-m3-ldrd -msoft-float -lopencm3_stm32f1
+
+OBJS = $(COMMON_FILES:.c=.o)
 
 .PHONY: all burn clean
 
 all: bld/$(PROJ_NAME).elf burn
 
-bld/$(PROJ_NAME).elf: $(COMMON_FILES)
-	$(CC) $(CFLAGS_LINK) -Isrc/ -Isrc/freertos/include/ -Isrc/freertos/ -Isrc/freertos/portable/GCC/ARM_CM3/ -o $@ $^
+bld/$(PROJ_NAME).elf: $(OBJS)
+#	echo $(COMMON_FILES)	
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 	$(CP) -O ihex bld/$(PROJ_NAME).elf bld/$(PROJ_NAME).hex	
 	$(CP) -O binary bld/$(PROJ_NAME).elf bld/$(PROJ_NAME).bin	
 	$(OD) -S bld/$(PROJ_NAME).elf > bld/$(PROJ_NAME).list
 
-clean: 
+clean:
+	find ./lib/ -name "*.o" -type f -delete
+	find ./src/ -name "*.o" -type f -delete
+	find ./lib/ -name "*.d" -type f -delete
+	find ./src/ -name "*.d" -type f -delete
 	rm -rf bld/*
 
 burn: all
